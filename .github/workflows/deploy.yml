@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Writes a settings.xml so Maven can log in to Anypoint (Exchange + Runtime Manager)
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+          server-id: anypoint-exchange-v3
+          server-username: ANYPOINT_USERNAME
+          server-password: ANYPOINT_PASSWORD
+
+      # CloudHub 2.0 requires groupId = business group ID (kept out of the repo as a secret),
+      # and Exchange needs a new version on every publish
+      - name: Set business group ID and version
+        env:
+          ANYPOINT_BUSINESS_GROUP_ID: ${{ secrets.ANYPOINT_BUSINESS_GROUP_ID }}
+        run: |
+          sed -i "s/REPLACE_WITH_BUSINESS_GROUP_ID/${ANYPOINT_BUSINESS_GROUP_ID}/" pom.xml
+          mvn -B -q versions:set -DnewVersion="1.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" -DgenerateBackupPoms=false
+
+      # The deployment marker: version, commit and actor travel with the deploy
+      - name: Build and deploy to CloudHub 2.0
+        env:
+          # Connected App login format expected by Anypoint's Maven endpoints
+          ANYPOINT_USERNAME:    "~~~Client~~~"
+          ANYPOINT_PASSWORD:    "${{ secrets.ANYPOINT_CLIENT_ID }}~?~${{ secrets.ANYPOINT_CLIENT_SECRET }}"
+          ANYPOINT_ENVIRONMENT: ${{ vars.ANYPOINT_ENVIRONMENT }}
+          ANYPOINT_TARGET:      ${{ vars.ANYPOINT_TARGET }}
+        run: |
+          MARKER="-Ddeploy.commit=${GITHUB_SHA::7} -Ddeploy.actor=${GITHUB_ACTOR}"
+          # 1. Publish the app to Exchange (CloudHub 2.0 deploys from there)
+          mvn -B deploy $MARKER
+          # 2. Deploy that Exchange asset to CloudHub 2.0 (the jar name is a required placeholder)
+          mvn -B mule:deploy -DmuleDeploy -Dmule.artifact=placeholder.jar $MARKER

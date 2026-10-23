@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+    <http:listener-config name="HTTP">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+
+    <!-- The deployment marker: one log line, written once when the app starts -->
+    <flow name="deploy-marker">
+        <scheduler>
+            <scheduling-strategy>
+                <fixed-frequency frequency="24" timeUnit="HOURS" startDelay="0"/>
+            </scheduling-strategy>
+        </scheduler>
+        <logger level="INFO" message='#["DEPLOY_MARKER version=$(p("deploy.version")) commit=$(p("deploy.commit")) actor=$(p("deploy.actor"))"]'/>
+    </flow>
+
+    <!-- Hello World -->
+    <flow name="hello">
+        <http:listener config-ref="HTTP" path="/hello"/>
+        <set-payload value='#[output application/json --- { message: "Hello World", version: p("deploy.version") }]'/>
+    </flow>
+
+</mule>

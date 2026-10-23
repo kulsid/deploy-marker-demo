@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- CloudHub 2.0 publishes the app to Exchange first, so groupId must be your business group (org) ID.
+         CI replaces this placeholder from the ANYPOINT_BUSINESS_GROUP_ID secret. -->
+    <groupId>REPLACE_WITH_BUSINESS_GROUP_ID</groupId>
+    <artifactId>deploy-marker-demo</artifactId>
+    <version>1.0.0</version> <!-- CI stamps a unique version per run -->
+    <packaging>mule-application</packaging>
+    <name>deploy-marker-demo</name> <!-- Exchange asset name (required) -->
+
+    <properties>
+        <!-- CI overrides these with -D on every run -->
+        <deploy.commit>local</deploy.commit>
+        <deploy.actor>local</deploy.actor>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.mule.tools.maven</groupId>
+                <artifactId>mule-maven-plugin</artifactId>
+                <version>4.3.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <cloudhub2Deployment>
+                        <uri>https://anypoint.mulesoft.com</uri>
+                        <provider>MC</provider>
+                        <server>anypoint-exchange-v3</server>
+                        <businessGroupId>${project.groupId}</businessGroupId>
+                        <environment>${env.ANYPOINT_ENVIRONMENT}</environment>
+                        <target>${env.ANYPOINT_TARGET}</target>
+                        <muleVersion>4.6.0</muleVersion>
+                        <applicationName>deploy-marker-demo</applicationName>
+                        <replicas>1</replicas>
+                        <vCores>0.1</vCores>
+                        <!-- The marker metadata, injected as app properties -->
+                        <properties>
+                            <deploy.version>${project.version}</deploy.version>
+                            <deploy.commit>${deploy.commit}</deploy.commit>
+                            <deploy.actor>${deploy.actor}</deploy.actor>
+                        </properties>
+                    </cloudhub2Deployment>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.mule.connectors</groupId>
+            <artifactId>mule-http-connector</artifactId>
+            <version>1.9.0</version>
+            <classifier>mule-plugin</classifier>
+        </dependency>
+    </dependencies>
+
+    <distributionManagement>
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/organizations/${project.groupId}/maven</url>
+        </repository>
+    </distributionManagement>
+
+    <repositories>
+        <!-- Needed by the Exchange publish step (uses the same login as distributionManagement) -->
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+        </repository>
+        <repository>
+            <id>mulesoft-releases</id>
+            <url>https://repository.mulesoft.org/releases/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>mulesoft-releases</id>
+            <url>https://repository.mulesoft.org/releases/</url>
+        </pluginRepository>
+    </pluginRepositories>
+</project>
