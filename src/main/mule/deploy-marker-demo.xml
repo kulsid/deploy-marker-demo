@@ -10,11 +10,12 @@
         <http:listener-connection host="0.0.0.0" port="8081"/>
     </http:listener-config>
 
-    <!-- The deployment marker: one log line, written once when the app starts -->
+    <!-- The deployment marker: one log line, written once when the app starts.
+         Fires immediately on startup; the 100-year interval means it never repeats. -->
     <flow name="deploy-marker">
         <scheduler>
             <scheduling-strategy>
-                <fixed-frequency frequency="24" timeUnit="HOURS" startDelay="0"/>
+                <fixed-frequency frequency="36500" timeUnit="DAYS" startDelay="0"/>
             </scheduling-strategy>
         </scheduler>
         <logger level="INFO" message='#["DEPLOY_MARKER version=$(p("deploy.version")) commit=$(p("deploy.commit")) actor=$(p("deploy.actor"))"]'/>
